@@ -36,7 +36,7 @@ export function FactoryDevices({ scene }: { scene: FactoryScene.AsObject }) {
       matrix4.compose(pos, quat, new THREE.Vector3(1, 1, 1));
       devices[type].push(matrix4);
     }
-    console.log(devices)
+    // console.log('devices: ', devices)
     return devices;
   }, [scene.devicesList]);
   const instancedMeshed = React.useMemo(() => {
@@ -49,9 +49,6 @@ export function FactoryDevices({ scene }: { scene: FactoryScene.AsObject }) {
     <>{instancedMeshed}</>
   );
 }
-
-
-
 
 // const textureConfig = {
 //   padding: 4,

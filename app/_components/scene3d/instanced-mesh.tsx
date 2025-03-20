@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useRef } from 'react';
+import { useEffect, useRef, forwardRef, useImperativeHandle, useCallback } from 'react';
 import * as THREE from 'three';
 import { extend } from '@react-three/fiber';
 
@@ -10,30 +10,45 @@ interface InstancedMeshProps {
   material?: THREE.Material;
 }
 
-export default function InstancedMesh(props: InstancedMeshProps) {
+export interface InstancedMeshRef {
+  updateMatrix: (m: THREE.Matrix4[]) => void;
+}
+
+const InstancedMesh = forwardRef<InstancedMeshRef, InstancedMeshProps>((props, ref) => {
   const { matrix, geometry, material } = props;
-  const ref = useRef<THREE.InstancedMesh<THREE.BufferGeometry, THREE.Material>>(null);
-  const count = matrix.length;
-  useEffect(() => {
-    if (ref.current) {
+  const imRef = useRef<THREE.InstancedMesh<THREE.BufferGeometry, THREE.Material>>(null);
+
+  const updateMatrix = useCallback((m: THREE.Matrix4[]) => {
+    const count = m.length;
+    if (imRef.current) {
+      const oldCount = imRef.current.count;
+      imRef.current.count = count;
       for (let i = 0; i < count; i++) {
-        ref.current.setMatrixAt(i, matrix[i]);
+        imRef.current.setMatrixAt(i, m[i]);
       }
-      const oldCount = ref.current.count;
       if (oldCount < count) {
         for (let i = count; i < oldCount; i++) {
-          const matrix = new THREE.Matrix4().identity();
-          ref.current.setMatrixAt(i, matrix);
+          const eye = new THREE.Matrix4().identity();
+          imRef.current.setMatrixAt(i, eye);
         }
       }
-      ref.current.count = count;
-      ref.current.instanceMatrix.needsUpdate = true;
+      imRef.current.instanceMatrix.needsUpdate = true;
     }
+  }, [imRef]);
+
+  useImperativeHandle(ref, () => ({
+    updateMatrix,
+  }));
+
+  useEffect(() => {
+    updateMatrix(matrix);
   }, [matrix]);
 
   return (
     <>
-      {count > 0 && <instancedMesh ref={ref} args={[geometry, material, count]} />}
+      <instancedMesh ref={imRef} args={[geometry, material, matrix.length]} />
     </>
   );
-}
+});
+
+export default InstancedMesh;

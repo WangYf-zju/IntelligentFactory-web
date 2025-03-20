@@ -2,8 +2,10 @@ import React, { useMemo } from "react";
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { Position, FactoryScene } from '@/lib/generated_files/scene_pb';
+import { useTrack } from "@/lib/hooks/factory-core";
 
 interface LineTrackProps {
+  id?: number;
   start: [x: number, y: number, z: number];
   end: [x: number, y: number, z: number];
   size?: [w: number, h: number];
@@ -25,6 +27,7 @@ type Arc3dProps = ArcProps & {
 };
 
 type ArcTrackProps = ArcProps & {
+  id?: number;
   size?: [w: number, h: number];
   space?: number;
   material?: THREE.Material;
@@ -124,20 +127,12 @@ export function ArcTrack(props: ArcTrackProps) {
 
 export function FactoryTracks({ scene, material = defaultTrackMaterial }:
   { scene: FactoryScene.AsObject, material?: THREE.Material }) {
+  const { lineTracks, arcTracks } = useTrack(scene);
   const geometries = useMemo(() => {
-    const transPos = (p: Position.AsObject): [x: number, y: number, z: number] => [p.x, p.y, p.z];
-    const nodes: { [key: number]: [x: number, y: number, z: number] } = {};
-    scene.nodesList.forEach(n => nodes[n.id] = transPos(n.position!));
-    const lineTracks = scene.tracksList.filter(t => t.type.toLowerCase() === "line")
-      .filter(t => nodes[t.start] && nodes[t.end])
-      .map(t => ({ start: nodes[t.start], end: nodes[t.end] }));
-    const arcTracks = scene.tracksList.filter(t => t.type.toLowerCase() === "arc")
-      .filter(t => nodes[t.start] && nodes[t.end] && t.center)
-      .map(t => ({ ...t, start: nodes[t.start], end: nodes[t.end], center: transPos(t.center!) }));
     const lineGeometries = lineTracks.map(LineTrackGeometries).flat();
     const arcGeometries = arcTracks.map(ArcTrackGeometries).flat();
     return [mergeGeometries([...lineGeometries]), mergeGeometries([...arcGeometries])];
-  }, [scene]);
+  }, [lineTracks, arcTracks]);
   return (
     <>
       <mesh geometry={geometries[0]} material={material} ></mesh>

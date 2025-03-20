@@ -1,5 +1,5 @@
 // package: 
-// file: data/scene.proto
+// file: scene.proto
 
 import * as jspb from "google-protobuf";
 
@@ -223,12 +223,49 @@ export namespace Station {
   }
 }
 
+export class Rect extends jspb.Message {
+  getX1(): number;
+  setX1(value: number): void;
+
+  getY1(): number;
+  setY1(value: number): void;
+
+  getX2(): number;
+  setX2(value: number): void;
+
+  getY2(): number;
+  setY2(value: number): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): Rect.AsObject;
+  static toObject(includeInstance: boolean, msg: Rect): Rect.AsObject;
+  static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+  static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+  static serializeBinaryToWriter(message: Rect, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): Rect;
+  static deserializeBinaryFromReader(message: Rect, reader: jspb.BinaryReader): Rect;
+}
+
+export namespace Rect {
+  export type AsObject = {
+    x1: number,
+    y1: number,
+    x2: number,
+    y2: number,
+  }
+}
+
 export class FactoryScene extends jspb.Message {
   getName(): string;
   setName(value: string): void;
 
   getVersion(): string;
   setVersion(value: string): void;
+
+  hasRange(): boolean;
+  clearRange(): void;
+  getRange(): Rect | undefined;
+  setRange(value?: Rect): void;
 
   clearNodesList(): void;
   getNodesList(): Array<TrackNode>;
@@ -264,6 +301,7 @@ export namespace FactoryScene {
   export type AsObject = {
     name: string,
     version: string,
+    range?: Rect.AsObject,
     nodesList: Array<TrackNode.AsObject>,
     tracksList: Array<Track.AsObject>,
     devicesList: Array<Device.AsObject>,

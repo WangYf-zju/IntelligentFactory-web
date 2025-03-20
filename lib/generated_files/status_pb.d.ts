@@ -1,5 +1,5 @@
 // package: 
-// file: data/status.proto
+// file: status.proto
 
 import * as jspb from "google-protobuf";
 
@@ -91,6 +91,11 @@ export class RobotStatus extends jspb.Message {
   getLoadingRtime(): number;
   setLoadingRtime(value: number): void;
 
+  hasLoadingTtime(): boolean;
+  clearLoadingTtime(): void;
+  getLoadingTtime(): number;
+  setLoadingTtime(value: number): void;
+
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): RobotStatus.AsObject;
   static toObject(includeInstance: boolean, msg: RobotStatus): RobotStatus.AsObject;
@@ -112,6 +117,7 @@ export namespace RobotStatus {
     foupId: number,
     taskId: number,
     loadingRtime: number,
+    loadingTtime: number,
   }
 }
 
@@ -203,8 +209,8 @@ export class TaskStatus extends jspb.Message {
 
   hasState(): boolean;
   clearState(): void;
-  getState(): TaskStatus | undefined;
-  setState(value?: TaskStatus): void;
+  getState(): TaskStateMap[keyof TaskStateMap];
+  setState(value: TaskStateMap[keyof TaskStateMap]): void;
 
   hasPickupDevice(): boolean;
   clearPickupDevice(): void;
@@ -229,7 +235,7 @@ export class TaskStatus extends jspb.Message {
 export namespace TaskStatus {
   export type AsObject = {
     id: number,
-    state?: TaskStatus.AsObject,
+    state: TaskStateMap[keyof TaskStateMap],
     pickupDevice: number,
     placeDevice: number,
   }

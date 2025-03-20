@@ -7,6 +7,7 @@ function LinearInterpolate(start: number, end: number, percent: number) {
 
 function GraphPosInterpolate(scene: FactoryScene.AsObject, 
   pos1: GraphPos.AsObject, pos2: GraphPos.AsObject, percent: number) {
+  // TODO: 考虑 pos1 和 pos2 的 edge 不相连的情况，需要根据 robot_path 插值
   if (pos1.edgeId == pos2.edgeId)
     return { edgeId: pos1.edgeId, percent: LinearInterpolate(pos1.percent, pos2.percent, percent) };
   const track1 = scene.tracksList.find(t => t.id == pos1.edgeId)
@@ -45,6 +46,7 @@ function StatusInterpolate(scene: FactoryScene.AsObject,
   const percent = (time - frame1.time) / (frame2.time - frame1.time);
   return {
     ...frame1,
+    time,
     robotsList: frame1.robotsList.map((robot1, index) =>
       RobotStatusInterpolate(scene, robot1, frame2.robotsList[index], percent)),
     devicesList: frame1.devicesList.map((device1, index) =>

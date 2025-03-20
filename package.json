@@ -11,9 +11,10 @@
   "dependencies": {
     "@react-three/drei": "^10.0.4",
     "@react-three/fiber": "^9.1.0",
-    "axios": "^1.8.2",
+    "flexlayout-react": "^0.8.7",
     "google-protobuf": "^3.21.4",
     "next": "15.2.2",
+    "protobufjs": "^7.4.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "three": "^0.174.0"
