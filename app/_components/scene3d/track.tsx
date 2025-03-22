@@ -1,7 +1,7 @@
-import React, { useMemo } from "react";
+import { useMemo, ReactNode } from "react";
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { Position, FactoryScene } from '@/lib/generated_files/scene_pb';
+import { FactoryScene } from '@/lib/generated_files/scene_pb';
 import { useTrack } from "@/lib/hooks/factory-core";
 
 interface LineTrackProps {
@@ -22,7 +22,7 @@ interface ArcProps {
 }
 
 type Arc3dProps = ArcProps & {
-  children?: React.ReactNode;
+  children?: ReactNode;
   size: [w: number, h: number];
 };
 
@@ -125,6 +125,7 @@ export function ArcTrack(props: ArcTrackProps) {
   );
 }
 
+// TODO: 提取合并逻辑，使多个canvas共用
 export function FactoryTracks({ scene, material = defaultTrackMaterial }:
   { scene: FactoryScene.AsObject, material?: THREE.Material }) {
   const { lineTracks, arcTracks } = useTrack(scene);

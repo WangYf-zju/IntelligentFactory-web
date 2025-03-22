@@ -34,7 +34,7 @@ const InstancedMesh = forwardRef<InstancedMeshRef, InstancedMeshProps>((props, r
       }
       imRef.current.instanceMatrix.needsUpdate = true;
     }
-  }, [imRef]);
+  }, []);
 
   useImperativeHandle(ref, () => ({
     updateMatrix,

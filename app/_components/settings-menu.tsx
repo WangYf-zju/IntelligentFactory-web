@@ -52,7 +52,7 @@ export const SettingsMenu = forwardRef<SettingsMenuRef, SettingsMenuProps>((prop
   return (
     <div>
       {/* 悬浮设置按钮 */}
-      {showButton && (
+      {icon && showButton && (
         <button
           onClick={openMenu}
           className={`fixed top-4 right-4 h-10 w-10 p-1 rounded-full hover:bg-black/10

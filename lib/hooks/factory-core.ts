@@ -7,7 +7,6 @@ import { useGlobalState } from "@hooks/global-state";
 import FactoryStatusParser from '../status-parser';
 
 const useFactoryStatusQueue = (scene: FactoryScene.AsObject | undefined) => {
-  // const [factoryStatusQueue, setFactoryStatusQueue] = useState<FactoryStatus.AsObject[]>([]);
   const factoryStatusQueue = useRef<FactoryStatus.AsObject[]>([]);
 
   const updateStatusQueue = useCallback((status: ReturnType<typeof FactoryStatusParser>) => {
@@ -60,7 +59,7 @@ const useFactoryStatusQueue = (scene: FactoryScene.AsObject | undefined) => {
     const frame1 = factoryStatusQueue.current[0];
     const frame2 = factoryStatusQueue.current[1];
     return StatusInterpolate(scene, frame1, frame2, time)
-  }, [factoryStatusQueue.current, scene]);
+  }, [scene]);
 
   return { updateStatusQueue, clearStatusQueue, statusGetter };
 };
@@ -69,10 +68,6 @@ export const useFactory = () => {
   const ws = useRef<WebSocket>(null);
   const { state: { scene }, dispatch } = useGlobalState();
   const { updateStatusQueue, clearStatusQueue, statusGetter } = useFactoryStatusQueue(scene);
-
-  useEffect(() => {
-    dispatch({ type: 'setStatusGetter', payload: statusGetter });
-  }, [statusGetter]);
 
   const messageHandler = useCallback((msg: FactoryMsg) => {
     const type = msg.getType();
@@ -131,7 +126,7 @@ export const useFactory = () => {
       ws.current.send(msg.serializeBinary());
       dispatch({ type: 'setPaused', payload: pause });
     }
-  }, [ws]);
+  }, []);
 
   return { sendPause, statusGetter, connectServer };
 };
@@ -196,31 +191,3 @@ export const useTrack = (scene: FactoryScene.AsObject | undefined) => {
   }, [tracks, lineTracks, arcTracks]); // 返回的 r 是弧度
   return { lineTracks, arcTracks, getWorldPost };
 }
-
-// import { useEffect, useState } from "react";
-// import { useGlobalState } from "@hooks/global-state";
-// import { useFactoryScene, useFactoryStatusQueue } from "@hooks/factory-msg";
-// import { FactoryStatus } from "@/lib/generated_files/status_pb";
-
-// export default function useFactoryCore() {
-//   // TODO: loading 状态
-//   const fps = 1 / 30;
-//   const [time, setTime] = useState(0);
-//   const [status, setStatus] = useState<FactoryStatus.AsObject>();
-//   const { state: { sceneUrl = '', statusUrl = '' }, dispatch } = useGlobalState();
-//   const { scene } = useFactoryScene(sceneUrl);
-//   const { getStatusAtTime } = useFactoryStatusQueue(statusUrl, scene);
-//   const frameUpdate = (dt: number) => {
-//     const s = getStatusAtTime(time);
-//     if (s && s.time === time)
-//       setTime(time + fps);
-//     setStatus(s);
-//   };
-//   useEffect(() => {
-//     scene && dispatch({ type: 'setScene', payload: scene });
-//   }, [scene]);
-//   useEffect(() => {
-//     status && dispatch({ type: 'setStatus', payload: status });
-//   }, [status]);
-//   return { scene, status, frameUpdate };
-// }

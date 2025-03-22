@@ -1,0 +1,47 @@
+import { lazy, Suspense, useEffect, useMemo } from 'react';
+import { TabNode } from 'flexlayout-react';
+import { useGlobalState } from '@/lib/hooks/global-state';
+import CameraTable from '../view/camera-table';
+const Canvas3d = lazy(() => import('@comp/canvas-3d'));
+
+const LoadingMask = () => {
+  return (
+    <div className="absolute left-0 right-0 top-0 bottom-0 
+      inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+      <div className="animate-spin rounded-full h-12 w-12 
+        border-t-2 border-b-2 border-blue-500"></div>
+    </div>
+  );
+};
+
+const DefaultComponent = () => <div>default</div>;
+
+const LayoutFactory = ({ node }: { node: TabNode }) => {
+  const { state: { nodes }, dispatch } = useGlobalState();
+  const nodeId = node.getId();
+  const component = useMemo(() => {
+    return nodes[nodeId]?.component || 'default';
+  }, [nodes]);
+  useEffect(() => {
+    dispatch({ type: 'registerNode', payload: nodeId });
+    return () => {
+      dispatch({ type: 'unregisterNode', payload: nodeId });
+    };
+  }, []);
+
+  return (
+    <>
+      {component === 'default' && <DefaultComponent />}
+      {component === 'canvas3d' && <Suspense fallback={<LoadingMask />}><Canvas3d nodeId={nodeId} /></Suspense>}
+      {component === 'canvas3d_debug' &&
+        <Suspense fallback={<LoadingMask />}>
+          <Canvas3d nodeId={nodeId} debug />
+        </Suspense>}
+      {component === 'camera_list' && <CameraTable />}
+    </>
+  );
+};
+
+const layoutFactory = (node: TabNode) => <LayoutFactory node={node} />;
+
+export default layoutFactory;

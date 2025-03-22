@@ -1,26 +1,20 @@
 'use client';
 
 import styles from './page.module.css';
-import { useMemo, useRef } from 'react';
-import Canvas3d from '@comp/canvas-3d';
+import { useRef } from 'react';
 import Toolbar, { ButtonGroup } from '@comp/toolbar';
+import { SettingsMenu, SettingsMenuRef } from '@comp/settings-menu';
+import PageFlexLayout from '@/app/_components/flex-layout/layout';
 import { GlobalStateProvider, useGlobalState } from '@hooks/global-state';
 import { useFactory } from '@hooks/factory-core';
-import PageFlexLayout from '@comp/layout';
-import { SettingsMenu, SettingsMenuRef } from './_components/settings-menu';
-
-const LoadingMask = () => {
-  return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-    </div>
-  );
-};
+import { SharedSceneProvider } from '@/lib/hooks/shared-scene';
+import useRobot from '@comp/scene3d/robot';
 
 function Content() {
   const { state: { paused }, dispatch } = useGlobalState();
   const settingsMenuRef = useRef<SettingsMenuRef>(null);
-  const { sendPause, connectServer } = useFactory();
+  const { sendPause, connectServer, statusGetter } = useFactory();
+  const robot = useRobot(statusGetter);
   const settingsButton = {
     id: 'settings',
     icon: '/icons/settings.svg',
@@ -55,14 +49,16 @@ function Content() {
       ],
     },
   ];
+
   return (
     <div className={styles.page}>
-      <SettingsMenu ref={settingsMenuRef} onClickConnect={connectServer} />
-      <Toolbar buttonGroups={buttonGroups} />
-      {/* <PageFlexLayout /> */}
-      <div className="w-screen h-screen">
-        <Canvas3d />
-      </div>
+      <SharedSceneProvider frameCallback={robot.frameUpdate}>
+        <SettingsMenu ref={settingsMenuRef} onClickConnect={connectServer} />
+        <Toolbar buttonGroups={buttonGroups} />
+        <div className="w-screen h-screen">
+          <PageFlexLayout />
+        </div>
+      </SharedSceneProvider>
     </div>
   );
 }

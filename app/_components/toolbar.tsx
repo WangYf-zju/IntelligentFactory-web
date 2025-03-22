@@ -1,6 +1,4 @@
-import React, { useRef, useState } from 'react';
-import { SettingsMenu, SettingsMenuRef } from '@comp/settings-menu';
-import { useGlobalState } from '@/lib/hooks/global-state';
+import React, { useState } from 'react';
 
 type Button = {
   id: string;
@@ -36,7 +34,7 @@ export default function Toolbar({ buttonGroups }: { buttonGroups: ButtonGroup[] 
   return (
     <>
       <div className={`fixed bottom-2 left-0 p-1 rounded-r-lg rounded-br-lg 
-      flex items-center space-x-1 z-50 ${isExpanded ? 'bg-gray-100' : 'bg-gray-300/25'}`}>
+      flex items-center space-x-1 z-2000 ${isExpanded ? 'bg-gray-100' : 'bg-gray-300/25'}`}>
         {buttonGroups.map((groupConfig, index) => (
           <React.Fragment key={groupConfig.group}>
             <div className={`flex ${isExpanded ? 'space-x-1' : 'space-x-0'} opacity-75`}>
