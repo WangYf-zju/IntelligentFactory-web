@@ -20,7 +20,7 @@ const LayoutTabContent = ({ node, menuItems, onClickMenu }: LayoutTabContentProp
   const triggerRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  const updateMenuPos = () => {
     if (triggerRef.current && menuRef.current) {
       const triggerRect = triggerRef.current.getBoundingClientRect();
       const menuRect = menuRef.current.getBoundingClientRect();
@@ -36,6 +36,17 @@ const LayoutTabContent = ({ node, menuItems, onClickMenu }: LayoutTabContentProp
       }
       setMenuPosition({ top, left });
     }
+  };
+
+  const toggleMenu = () => {
+    if (!open) {
+      updateMenuPos();
+      setOpen(true);
+    } else setOpen(false);
+  };
+
+  useEffect(() => {
+    updateMenuPos();
   }, []);
 
   useEffect(() => {
@@ -51,10 +62,11 @@ const LayoutTabContent = ({ node, menuItems, onClickMenu }: LayoutTabContentProp
 
   return (
     <div className='-my-1 -ml-2 -mr-7 cursor-default'>
-      <div className='py-1 pl-2 pr-7 flex items-center' ref={triggerRef}>
+      <div ref={triggerRef} className='py-1 pl-2 pr-7 flex items-center'
+        title={node.getId()}>
         <div
-          onClick={() => setOpen(!open)}
-          onDoubleClick={(e) => e.stopPropagation()}
+          onClick={toggleMenu}
+          onDoubleClick={(e) => e.stopPropagation()} // 禁用默认的双击重命名
           className="inline-block pr-1"
         >
           ▼

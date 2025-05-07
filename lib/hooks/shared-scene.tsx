@@ -3,7 +3,8 @@ import * as THREE from 'three';
 
 interface SharedSceneProviderProps {
   children?: ReactNode;
-  frameCallback?: (scene: THREE.Scene, dt: number) => void;
+  init?: (scene: THREE.Scene) => void,
+  frameUpdate?: (scene: THREE.Scene, dt: number) => void;
 }
 
 function useCustomFrame(callback: (dt: number) => void) {
@@ -25,14 +26,16 @@ function useCustomFrame(callback: (dt: number) => void) {
   }, [callback]);
 }
 
-const scene = new THREE.Scene();
 const SharedSceneContext = createContext<THREE.Scene | null>(null);
 export const SharedSceneProvider = (props: SharedSceneProviderProps) => {
-  const { children, frameCallback } = props;
+  const { children, init, frameUpdate: frameCallback } = props;
   const scene = useRef(new THREE.Scene());
   const callback = useCallback((dt: number) => {
     frameCallback?.(scene.current, dt);
   }, [frameCallback]);
+  useEffect(() => {
+    init?.(scene.current);
+  }, []);
   useCustomFrame(callback);
   
   return (

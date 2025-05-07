@@ -1,6 +1,6 @@
 import { useState, useEffect, RefObject } from 'react';
 
-function useResizeObserver(targetRef: RefObject<HTMLElement>) {
+function useResizeObserver(targetRef: RefObject<HTMLElement | null>) {
   const [size, setSize] = useState<[width: number, height: number]>([0, 0]);
 
   useEffect(() => {

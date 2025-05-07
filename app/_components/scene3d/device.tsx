@@ -1,8 +1,10 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { FactoryScene } from '@/lib/generated_files/scene_pb';
-import InstancedMesh from '@comp/scene3d/instanced-mesh';
+import InstancedMesh, { useInstancedMesh } from '@comp/scene3d/instanced-mesh';
+import { useObjModel } from '@/lib/hooks/model-loader';
+import { useGlobalState } from '@/lib/hooks/global-state';
 
 const material = new THREE.MeshStandardMaterial({ color: '#91caff' });
 
@@ -15,30 +17,32 @@ function DefaultDeviceGeometries() {
   return geometries;
 }
 
+// TODO: 加载 OBJ 模型
 const deviceGeometries: { [key: string]: THREE.BufferGeometry } = {
   "default": DefaultDeviceGeometries(),
 }
 
-export function FactoryDevices({ scene }: { scene: FactoryScene.AsObject }) {
-  const devices = useMemo(() => {
-    const devices: { [key: string]: THREE.Matrix4[] } = {};
-    for (let d of scene.devicesList) {
-      const t = d.type.toLowerCase();
-      const type = deviceGeometries[t] ? t : "default";
-      if (devices[type] === undefined) {
-        devices[type] = [];
-      }
-      const r = (d.rotation) / 180 * Math.PI;
-      const matrix4 = new THREE.Matrix4();
-      const pos = new THREE.Vector3(d.position!.x, d.position!.y, d.position!.z);
-      const quat = new THREE.Quaternion();
-      quat.setFromAxisAngle(new THREE.Vector3(0, 0, 1), r);
-      matrix4.compose(pos, quat, new THREE.Vector3(1, 1, 1));
-      devices[type].push(matrix4);
+const getDevicePost = (scene: FactoryScene.AsObject) => {
+  const devices: { [key: string]: THREE.Matrix4[] } = {};
+  for (let d of scene.devicesList) {
+    const t = d.type.toLowerCase();
+    const type = deviceGeometries[t] ? t : "default";
+    if (devices[type] === undefined) {
+      devices[type] = [];
     }
-    // console.log('devices: ', devices)
-    return devices;
-  }, [scene.devicesList]);
+    const r = (d.rotation) / 180 * Math.PI;
+    const matrix4 = new THREE.Matrix4();
+    const pos = new THREE.Vector3(d.position!.x, d.position!.y, d.position!.z);
+    const quat = new THREE.Quaternion();
+    quat.setFromAxisAngle(new THREE.Vector3(0, 0, 1), r);
+    matrix4.compose(pos, quat, new THREE.Vector3(1, 1, 1));
+    devices[type].push(matrix4);
+  }
+  return devices;
+};
+
+export function FactoryDevices({ scene }: { scene: FactoryScene.AsObject }) {
+  const devices = useMemo(() => getDevicePost(scene), [scene]);
   const instancedMeshed = React.useMemo(() => {
     return Object.keys(devices).map(type => {
       return <InstancedMesh key={type} matrix={devices[type]}
@@ -50,62 +54,23 @@ export function FactoryDevices({ scene }: { scene: FactoryScene.AsObject }) {
   );
 }
 
-// const textureConfig = {
-//   padding: 4,
-//   color: ['#fff', '#aaa'],
-//   cacheSize: [22, 18],
-//   cacheY: 64,
-//   cachePadding: 2.5,
-//   cacheSpacing: -2,
-//   cacheColor: ['#111', '#555'],
-// };
+export const useDeviceRender = () => {
+  const deviceModel = useObjModel('device');
+   const { state: { scene: sceneState } } = useGlobalState();
+  const deviceInstancedMesh: {[K in string]: ReturnType<typeof useInstancedMesh>} = {
+    'default': useInstancedMesh(...deviceModel.gm)
+  };
+  const needUpdate = useRef(true);
+  useEffect(() => { needUpdate.current = true; }, [sceneState]);
 
-// function Texture(w: number, h: number, r: number, cacheCount?: number) {
-//   const {
-//     padding: p, color: [c, bc],
-//     cacheSize: [cw, ch], cacheY: cy, cachePadding: cp,
-//     cacheSpacing: cs, cacheColor: [cc, cbc],
-//   } = textureConfig;
-//   const canvas = document.createElement('canvas');
-//   canvas.width = w;
-//   canvas.height = h;
-//   const ctx = canvas.getContext('2d');
-//   ctx!.fillStyle = bc;
-//   ctx!.fillRect(0, 0, w, h);
-//   ctx!.fillStyle = c;
-//   ctx!.fillRect(p, p, w - 2 * p, h - 2 * p);
-//   for (let i = 0; i < (cacheCount || 0); i++) {
-//     ctx!.fillStyle = cbc;
-//     ctx!.fillRect(p + i * (cw + cs), cy, cw, ch);
-//     ctx!.fillStyle = cc;
-//     ctx!.fillRect(p + i * (cw + cs) + cp, cy + cp, cw - 2 * cp, ch - 2 * cp);
-//   }
-//   const texture = new THREE.CanvasTexture(canvas);
-//   if (r !== 0) {
-//     texture.center.set(0.5, 0.5);
-//     texture.rotation = r / 180 * Math.PI;
-//   }
-//   texture.needsUpdate = true;
-//   return texture;
-// }
+  const frameUpdate = (scene: THREE.Scene, dt: number) => {
+    if (!needUpdate.current || !scene || !sceneState) return;
+    needUpdate.current = false;
+    const devices = getDevicePost(sceneState)
+    Object.keys(devices).forEach(type => {
+      deviceInstancedMesh[type].update(scene, devices[type]);
+    });
+  };
 
-// export function DeviceB(props: DeviceProps) {
-//   const { cacheCount = 3 } = props;
-//   const s = 128;
-//   const geometry = useMemo(() => new THREE.BoxGeometry(2.5, 3.75, 2.5), []);
-//   const materials = useMemo(() => {
-//     const tfront = Texture(s, s, 180, cacheCount);
-//     const tback = Texture(s, s, 0);
-//     const tside = Texture(s, s * 1.5, 0);
-//     // [x+, x-, y+, y-, z+, z-]
-//     return [
-//       new THREE.MeshStandardMaterial({ map: tside }),
-//       new THREE.MeshStandardMaterial({ map: tside }),
-//       new THREE.MeshStandardMaterial({ map: tfront }),
-//       new THREE.MeshStandardMaterial({ map: tback }),
-//       new THREE.MeshStandardMaterial({ map: tside }),
-//       new THREE.MeshStandardMaterial({}),
-//     ];
-//   }, []);
-//   return <mesh geometry={geometry} material={materials} />;
-// }
+  return { frameUpdate };
+};

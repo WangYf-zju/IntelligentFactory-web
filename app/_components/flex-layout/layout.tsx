@@ -31,9 +31,19 @@ const TabMenu = [
     label: '3D调试',
   },
   {
-    key: 'camera_list',
-    component: 'camera_list',
+    key: 'camera',
+    component: 'camera',
     label: '相机列表',
+  },
+  {
+    key: 'scene_object',
+    component: 'scene_object',
+    label: '场景',
+  },
+  {
+    key: 'robot_table',
+    component: 'robot_table',
+    label: '天车列表',
   }
 ];
 
@@ -104,6 +114,7 @@ const PageFlexLayout = () => {
       });
       model.doAction(Actions.updateNodeAttributes(node.getId(),
         { component: item.component, name: item.label }));
+      // setModel(Model.fromJson(model.toJson()));
     };
     renderValues.content = (
       <LayoutTabContent node={node} menuItems={TabMenu} onClickMenu={onClickMenu} />

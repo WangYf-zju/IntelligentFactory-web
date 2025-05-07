@@ -133,7 +133,7 @@ export const useFactory = () => {
 
 type xyz = [x: number, y: number, z: number];
 
-export const useTrack = (scene: FactoryScene.AsObject | undefined) => {
+export const useFactoryTrack = (scene: FactoryScene.AsObject | undefined) => {
   const { tracks = {}, lineTracks = [], arcTracks = [] } = useMemo(() => {
     if (!scene) return {};
     const transPos = (p: Position.AsObject): xyz => [p.x, p.y, p.z];

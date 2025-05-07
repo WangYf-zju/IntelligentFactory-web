@@ -1,16 +1,39 @@
 import { createContext, useContext, Dispatch, useReducer, act } from 'react';
 import * as THREE from 'three';
-import { ThreeElements } from '@react-three/fiber';
 import { FactoryScene } from '@/lib/generated_files/scene_pb';
 import { FactoryStatus } from '@/lib/generated_files/status_pb';
 
-type CameraInfo = Omit<ThreeElements['perspectiveCamera'], 'ref' | 'children'>
-  & { camera?: THREE.PerspectiveCamera };
+// type CameraInfo = Omit<ThreeElements['perspectiveCamera'], 'ref' | 'children'>;
+type SetNodeInfoPayload = Partial<Omit<NodeInfo, 'id' | 'cameraInfo'>>;
+
+export interface CameraInfo {
+  target?: [x: number, y: number, z: number];
+  position?: [x: number, y: number, z: number];
+  rotation?: [x: number, y: number, z: number];
+  quaternion?: [w: number, x: number, y: number, z: number];
+  near?: number;
+  far?: number;
+  fov?: number;
+  aspect?: number;
+  zoom?: number;
+  focus?: number;
+}
+
+interface ViewInfo {
+  type: 'free' | 'top' | 'follow';
+  target_type?: 'robot' | 'device';
+  target_id?: number;
+  // offset?: [x: number, y: number, z: number];
+}
 
 interface NodeInfo {
   id: string;
   component: string;
   cameraInfo: CameraInfo;
+  view: ViewInfo;
+  needUpdateCamera: boolean;
+  camera?: THREE.PerspectiveCamera;
+  scene?: THREE.Scene;
 }
 
 interface DebugInfo {
@@ -38,8 +61,9 @@ type Action =
   | { type: 'setMouseButtonFunction'; payload: 'move' | 'rotate' }
   | { type: 'registerNode'; payload: string }
   | { type: 'unregisterNode'; payload: string }
-  | { type: 'setNodeInfo'; payload: { id: string; info: Omit<NodeInfo, 'id' | 'cameraInfo'> } }
+  | { type: 'setNodeInfo'; payload: { id: string; info: SetNodeInfoPayload } }
   | { type: 'setNodeCameraInfo'; payload: { id: string; info: CameraInfo } }
+  | { type: 'changeNodeCameraInfo'; payload: { id: string; info: CameraInfo } }
   | { type: 'setDebugInfo'; payload: DebugInfo }
 
 const initialState: GlobalState = {
@@ -64,6 +88,7 @@ const registerNode = (state: GlobalState, id: string) => {
     id: id,
     component: 'default',
     cameraInfo: {},
+    needUpdateCamera: false,
   };
   return { ...state, nodes: { ...state.nodes } };
 };
@@ -76,7 +101,7 @@ const unregisterNode = (state: GlobalState, id: string) => {
   return { ...state, nodes: { ...state.nodes } };
 };
 
-const setNodeInfo = (state: GlobalState, id: string, info: Omit<NodeInfo, 'id' | 'cameraInfo'>) => {
+const setNodeInfo = (state: GlobalState, id: string, info: SetNodeInfoPayload) => {
   if (state.nodes[id] === undefined) {
     console.warn(`Node ${id} is not exist`);
     return state;
@@ -88,15 +113,19 @@ const setNodeInfo = (state: GlobalState, id: string, info: Omit<NodeInfo, 'id' |
   return { ...state, nodes: { ...state.nodes } };
 };
 
-const setNodeCameraInfo = (state: GlobalState, id: string, info: CameraInfo) => {
+const setNodeCameraInfo = (state: GlobalState, id: string, info: CameraInfo, needUpdate = false) => {
   if (state.nodes[id] === undefined) {
     console.warn(`Node ${id} is not exist`);
     return state;
   }
+  // 需要更新相机状态，忽略设置请求
+  if (needUpdate === false && state.nodes[id].needUpdateCamera === true)
+    return state;
   state.nodes[id].cameraInfo = {
     ...state.nodes[id].cameraInfo,
     ...info,
   };
+  state.nodes[id].needUpdateCamera = needUpdate;
   return { ...state, nodes: { ...state.nodes } };
 }
 
@@ -124,6 +153,8 @@ function globalReducer(state: GlobalState, action: Action): GlobalState {
       return setNodeInfo(state, action.payload.id, action.payload.info);
     case 'setNodeCameraInfo':
       return setNodeCameraInfo(state, action.payload.id, action.payload.info);
+    case 'changeNodeCameraInfo':
+      return setNodeCameraInfo(state, action.payload.id, action.payload.info, true);
     case 'setDebugInfo':
       return { ...state, debug: { ...state.debug, ...action.payload } };
     default:

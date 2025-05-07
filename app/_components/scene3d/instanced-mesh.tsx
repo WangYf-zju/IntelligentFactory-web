@@ -51,4 +51,23 @@ const InstancedMesh = forwardRef<InstancedMeshRef, InstancedMeshProps>((props, r
   );
 });
 
+export const useInstancedMesh = (geometry: THREE.BufferGeometry,
+  material: THREE.Material | THREE.Material[]) => {
+  const instancedMesh = useRef<THREE.InstancedMesh>(null);
+  const count = useRef(0);
+  const update = useCallback((scene: THREE.Scene, matrix: THREE.Matrix4[]) => {
+    if (matrix.length > count.current || !instancedMesh.current) {
+      instancedMesh.current && scene.remove(instancedMesh.current);
+      instancedMesh.current = new THREE.InstancedMesh(geometry, material, matrix.length);
+      scene.add(instancedMesh.current);
+      count.current = matrix.length;
+    } else {
+      instancedMesh.current.count = matrix.length;
+    }
+    matrix.forEach((m, i) => instancedMesh.current!.setMatrixAt(i, m));
+    instancedMesh.current.instanceMatrix.needsUpdate = true;
+  }, [geometry, material]);
+  return { update };
+};
+
 export default InstancedMesh;

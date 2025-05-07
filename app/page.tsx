@@ -1,20 +1,21 @@
 'use client';
 
+import { ConfigProvider, theme } from 'antd';
 import styles from './page.module.css';
 import { useRef } from 'react';
+import { useFactoryScene } from '@comp/scene3d/factory';
 import Toolbar, { ButtonGroup } from '@comp/toolbar';
 import { SettingsMenu, SettingsMenuRef } from '@comp/settings-menu';
-import PageFlexLayout from '@/app/_components/flex-layout/layout';
+import PageFlexLayout from '@comp/flex-layout/layout';
 import { GlobalStateProvider, useGlobalState } from '@hooks/global-state';
 import { useFactory } from '@hooks/factory-core';
-import { SharedSceneProvider } from '@/lib/hooks/shared-scene';
-import useRobot from '@comp/scene3d/robot';
+import { SharedSceneProvider } from '@hooks/shared-scene';
 
 function Content() {
   const { state: { paused }, dispatch } = useGlobalState();
   const settingsMenuRef = useRef<SettingsMenuRef>(null);
   const { sendPause, connectServer, statusGetter } = useFactory();
-  const robot = useRobot(statusGetter);
+  const factoryScene = useFactoryScene(statusGetter);
   const settingsButton = {
     id: 'settings',
     icon: '/icons/settings.svg',
@@ -52,11 +53,14 @@ function Content() {
 
   return (
     <div className={styles.page}>
-      <SharedSceneProvider frameCallback={robot.frameUpdate}>
+      <SharedSceneProvider {...factoryScene}>
         <SettingsMenu ref={settingsMenuRef} onClickConnect={connectServer} />
         <Toolbar buttonGroups={buttonGroups} />
-        <div className="w-screen h-screen">
-          <PageFlexLayout />
+        <div className="w-screen h-full flex flex-col">
+          <div className="header h-8 text-lg font-sans font-semibold flex items-center px-4">晶圆制造物料配送仿真系统</div>
+          <div className="flex-1">
+            <PageFlexLayout />
+          </div>
         </div>
       </SharedSceneProvider>
     </div>
@@ -65,8 +69,14 @@ function Content() {
 
 export default function Home() {
   return (
-    <GlobalStateProvider>
-      <Content />
-    </GlobalStateProvider>
+    <ConfigProvider
+      theme={{
+        algorithm: theme.compactAlgorithm,
+      }}
+    >
+      <GlobalStateProvider>
+        <Content />
+      </GlobalStateProvider>
+    </ConfigProvider>
   );
 }

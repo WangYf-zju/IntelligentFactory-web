@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useRef } from 'react';
 import * as THREE from 'three';
-import { MTLLoader, OBJLoader } from 'three/examples/jsm/Addons.js';
 import { useGlobalState } from '@hooks/global-state';
-import { useTrack } from '@hooks/factory-core';
+import { useFactoryTrack } from '@hooks/factory-core';
 import { FactoryStatus, RobotStatus, RobotWorkState, TaskStatus } from '@/lib/generated_files/status_pb';
 import { Device, FactoryScene } from '@/lib/generated_files/scene_pb';
+import { useObjModel } from '@/lib/hooks/model-loader';
+import { useInstancedMesh } from '@comp/scene3d/instanced-mesh';
 
 const robotOffsetZ = -0.04;
 const loadingPrepareTime = 1;
@@ -75,71 +76,26 @@ const useRobotAnimation = (generator: AnimationPathGenerator) => {
   return { animations: animations.current, update, getPost };
 };
 
-const useInstancedMesh = (geometry: THREE.BufferGeometry,
-  material: THREE.Material | THREE.Material[]) => {
-  const instancedMesh = useRef<THREE.InstancedMesh>(null);
-  const count = useRef(0);
-  const update = useCallback((scene: THREE.Scene, matrix: THREE.Matrix4[]) => {
-    if (matrix.length > count.current || !instancedMesh.current) {
-      instancedMesh.current && scene.remove(instancedMesh.current);
-      instancedMesh.current = new THREE.InstancedMesh(geometry, material, matrix.length);
-      scene.add(instancedMesh.current);
-      count.current = matrix.length;
-    } else {
-      instancedMesh.current.count = matrix.length;
-    }
-    matrix.forEach((m, i) => instancedMesh.current!.setMatrixAt(i, m));
-    instancedMesh.current.instanceMatrix.needsUpdate = true;
-  }, [geometry, material]);
-  return { update };
-};
-
-const useRobotModel = (name: string) => {
-  const OBJPath = `/models/${name}.obj`;
-  const MTLPath = `/models/${name}.mtl`;
-  const geometry = useRef<THREE.BufferGeometry>(null);
-  const material = useRef<THREE.Material | THREE.Material[]>(null);
-  const model = useRef<THREE.Group<THREE.Object3DEventMap>>(null);
-  useEffect(() => {
-    const loadMTL = () =>
-      new Promise<MTLLoader.MaterialCreator>((resolve, reject) =>
-        new MTLLoader().load(MTLPath, resolve, () => undefined, reject));
-    const loadOBJ = (materials: MTLLoader.MaterialCreator) => {
-      const loader = new OBJLoader();
-      loader.setMaterials(materials);
-      return new Promise<THREE.Group<THREE.Object3DEventMap>>((resolve, reject) =>
-        loader.load(OBJPath, resolve, () => undefined, reject));
-    }
-    loadMTL().then(mtl => loadOBJ(mtl)).then(m => {
-      if (m.children.length > 1) {
-        console.warn(`Model ${name} has more than one mesh, only the first mesh will be rendered`);
-      }
-      model.current = m;
-      geometry.current = (m.children[0] as THREE.Mesh)?.geometry;
-      material.current = (m.children[0] as THREE.Mesh)?.material;
-    }).catch(e => {
-      console.log(`Cannot load model ${name}\n`, e);
-    });
-  }, [name]);
-  return {
-    model: model.current, gm:
-      [geometry.current, material.current] as
-      [g: THREE.BufferGeometry, m: THREE.Material | THREE.Material[]]
-  };
-};
-
-const useRobot = (
+export const useRobotRender = (
   statusGetter: (t: number) => FactoryStatus.AsObject | undefined) => {
   // if (typeof window === 'undefined') { // 禁止服务端渲染
   //   return { frameUpdate: () => undefined };
   // }
   // 加载资源
-  const robotModel = useRobotModel('oht-body');
-  const foupModel = useRobotModel('oht-foup');
-  const gripperModel = useRobotModel('oht-gripper');
-  // const robotInstancedMesh = useInstancedMesh(...robotModel.gm);
-  // const foupInstancedMesh = useInstancedMesh(...foupModel.gm);
-  // const gripperInstancedMesh = useInstancedMesh(...gripperModel.gm);
+  const robotModel = useObjModel('oht-body');
+  const foupModel = useObjModel('oht-foup');
+  const gripperModel = useObjModel('oht-gripper');
+  const robotInstancedMesh = useInstancedMesh(...robotModel.gm);
+  const foupInstancedMesh = useInstancedMesh(...foupModel.gm);
+  const gripperInstancedMesh = useInstancedMesh(...gripperModel.gm);
+  const pulseInstancedMesh = useInstancedMesh(
+    new THREE.SphereGeometry(0.5, 32, 32),
+    new THREE.MeshBasicMaterial({
+      color: 0xff0000,
+      transparent: true,
+      opacity: 0.3,
+    })
+  );
   const foupAnimations = useRobotAnimation((robot, task, device) => {
     const r = device.rotation / 180 * Math.PI;
     const offsetX = Math.cos(r) * loadingOffsetXY;
@@ -159,10 +115,14 @@ const useRobot = (
   });
 
   const time = useRef<number>(0);
+  const pulseScale = useRef<number>(1);
   const { state: { scene: sceneState, paused } } = useGlobalState();
-  const { getWorldPost } = useTrack(sceneState);
+  const { getWorldPost } = useFactoryTrack(sceneState);
 
   const frameUpdate = (scene: THREE.Scene, dt: number) => {
+    pulseScale.current += 0.01;
+    if (pulseScale.current > 2)
+      pulseScale.current = 1;
     if (!scene || !statusGetter || !sceneState) return;
     const status = statusGetter(paused ? time.current : time.current + dt);
     if (!status) return;
@@ -170,7 +130,20 @@ const useRobot = (
     const robotMatrix: THREE.Matrix4[] = [];
     const foupMatrix: THREE.Matrix4[] = [];
     const gripperMatrix: THREE.Matrix4[] = [];
-    status.robotsList.forEach(robot => {
+    const pulseMatrix: THREE.Matrix4[] = [];
+
+    const m = new THREE.Matrix4();
+    const pos = new THREE.Vector3(103, 65, 3 + robotOffsetZ);
+    const quat = new THREE.Quaternion();
+    quat.setFromAxisAngle(new THREE.Vector3(0, 0, 1), Math.PI / 2);
+    m.compose(pos, quat, new THREE.Vector3(1, 1, 1));
+    robotMatrix.push(m);
+    gripperMatrix.push(m);
+    foupMatrix.push(m);
+    
+
+    status.robotsList.forEach((robot, index) => {
+      return;
       const [x, y, z, r] = getWorldPost(robot.pos!);
       const m = new THREE.Matrix4();
       const pos = new THREE.Vector3(x, y, z + robotOffsetZ);
@@ -180,20 +153,24 @@ const useRobot = (
       // 判断并更新装卸动画
       foupAnimations.update(status, sceneState, robot);
       gripperAnimations.update(status, sceneState, robot);
-
       robotMatrix.push(m);
       // 正在播放装卸动画/携带Foup的机器人需要渲染 foup
       if (foupAnimations.animations[robot.id] || robot.foupId !== -1)
         foupMatrix.push(foupAnimations.getPost(robot, m));
       gripperMatrix.push(gripperAnimations.getPost(robot, m));
+      const m1 = new THREE.Matrix4();
+      const s = ((pulseScale.current * 100 + index) % 100) / 100 + 1;
+      m1.compose(pos, quat, new THREE.Vector3(s, s, s));
+      pulseMatrix.push(m1);
     });
-    // robotInstancedMesh.update(scene, robotMatrix);
-    // foupInstancedMesh.update(scene, foupMatrix);
-    // gripperInstancedMesh.update(scene, gripperMatrix);
-    scene.clear();
-    renderOBJModels(scene, robotMatrix, robotModel.model);
-    renderOBJModels(scene, foupMatrix, foupModel.model);
-    renderOBJModels(scene, gripperMatrix, gripperModel.model);
+    robotInstancedMesh.update(scene, robotMatrix);
+    foupInstancedMesh.update(scene, foupMatrix);
+    gripperInstancedMesh.update(scene, gripperMatrix);
+    pulseInstancedMesh.update(scene, pulseMatrix);
+
+    // renderOBJModels(scene, robotMatrix, robotModel.model);
+    // renderOBJModels(scene, foupMatrix, foupModel.model);
+    // renderOBJModels(scene, gripperMatrix, gripperModel.model);
   };
 
   return { frameUpdate };
@@ -207,6 +184,4 @@ const renderOBJModels = (scene: THREE.Scene,
     modelClone.applyMatrix4(m);
     scene.add(modelClone);
   });
-}
-
-export default useRobot;
+};

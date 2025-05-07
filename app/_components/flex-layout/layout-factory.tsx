@@ -1,7 +1,9 @@
-import { lazy, Suspense, useEffect, useMemo } from 'react';
+import React, { lazy, Suspense, useEffect, useMemo } from 'react';
 import { TabNode } from 'flexlayout-react';
-import { useGlobalState } from '@/lib/hooks/global-state';
-import CameraTable from '../view/camera-table';
+import { useGlobalState } from '@hooks/global-state';
+import CameraTable from '@comp/view/camera';
+import SceneObjectTree from '@comp/view/scene-object';
+import RobotTable from '../view/robot-table';
 const Canvas3d = lazy(() => import('@comp/canvas-3d'));
 
 const LoadingMask = () => {
@@ -16,19 +18,8 @@ const LoadingMask = () => {
 
 const DefaultComponent = () => <div>default</div>;
 
-const LayoutFactory = ({ node }: { node: TabNode }) => {
-  const { state: { nodes }, dispatch } = useGlobalState();
-  const nodeId = node.getId();
-  const component = useMemo(() => {
-    return nodes[nodeId]?.component || 'default';
-  }, [nodes]);
-  useEffect(() => {
-    dispatch({ type: 'registerNode', payload: nodeId });
-    return () => {
-      dispatch({ type: 'unregisterNode', payload: nodeId });
-    };
-  }, []);
-
+const Factory = React.memo(({ nodeId, component }: { nodeId: string, component: string }) => {
+  console.log(22)
   return (
     <>
       {component === 'default' && <DefaultComponent />}
@@ -37,8 +28,29 @@ const LayoutFactory = ({ node }: { node: TabNode }) => {
         <Suspense fallback={<LoadingMask />}>
           <Canvas3d nodeId={nodeId} debug />
         </Suspense>}
-      {component === 'camera_list' && <CameraTable />}
+      {component === 'camera' && <CameraTable />}
+      {component === 'scene_object' && <SceneObjectTree />}
+      {component === 'robot_table' && <RobotTable />}
     </>
+  )
+});
+
+const LayoutFactory = ({ node }: { node: TabNode }) => {
+  const { state: { nodes }, dispatch } = useGlobalState();
+  const nodeId = node.getId();
+  const component = useMemo(() => {
+    return nodes[node.getId()]?.component || 'default';
+  }, [nodes]);
+
+  useEffect(() => {
+    dispatch({ type: 'registerNode', payload: nodeId });
+    return () => {
+      dispatch({ type: 'unregisterNode', payload: nodeId });
+    };
+  }, []);
+
+  return (
+    <Factory nodeId={nodeId} component={component} />
   );
 };
 

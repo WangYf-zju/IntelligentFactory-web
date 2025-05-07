@@ -1,8 +1,9 @@
-import { useMemo, ReactNode } from "react";
+import { useMemo, ReactNode, useEffect, useRef } from "react";
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { FactoryScene } from '@/lib/generated_files/scene_pb';
-import { useTrack } from "@/lib/hooks/factory-core";
+import { useFactoryTrack } from "@/lib/hooks/factory-core";
+import { useGlobalState } from "@/lib/hooks/global-state";
 
 interface LineTrackProps {
   id?: number;
@@ -35,7 +36,7 @@ type ArcTrackProps = ArcProps & {
 
 const defaultTrackSize = [0.2, 0.1]
 const defualtTrackSpace = 0.6
-const defaultTrackMaterial = new THREE.MeshStandardMaterial({ color: '#fff1b8', metalness: 0.5, roughness: 0.3 });
+const defaultTrackMaterial = new THREE.MeshStandardMaterial({ color: '#fff1b8', metalness: 0.1, roughness: 0.3 });
 
 function LineTrans(start: THREE.Vector3, end: THREE.Vector3) {
   const dire = end.clone().sub(start).normalize();
@@ -125,10 +126,9 @@ export function ArcTrack(props: ArcTrackProps) {
   );
 }
 
-// TODO: 提取合并逻辑，使多个canvas共用
 export function FactoryTracks({ scene, material = defaultTrackMaterial }:
   { scene: FactoryScene.AsObject, material?: THREE.Material }) {
-  const { lineTracks, arcTracks } = useTrack(scene);
+  const { lineTracks, arcTracks } = useFactoryTrack(scene);
   const geometries = useMemo(() => {
     const lineGeometries = lineTracks.map(LineTrackGeometries).flat();
     const arcGeometries = arcTracks.map(ArcTrackGeometries).flat();
@@ -140,4 +140,31 @@ export function FactoryTracks({ scene, material = defaultTrackMaterial }:
       <mesh geometry={geometries[1]} material={material} ></mesh>
     </>
   );
+}
+
+export function useTrackRender() {
+  const { state: { scene: sceneState } } = useGlobalState();
+  const { lineTracks, arcTracks } = useFactoryTrack(sceneState);
+  const lineMesh = useRef<THREE.Mesh>(null);
+  const arcMesh = useRef<THREE.Mesh>(null);
+  const geometries = useMemo(() => {
+    const lineGeometries = lineTracks.map(LineTrackGeometries).flat();
+    const arcGeometries = arcTracks.map(ArcTrackGeometries).flat();
+    return [lineGeometries.length ? mergeGeometries(lineGeometries) : null,
+    arcGeometries.length ? mergeGeometries(arcGeometries) : null];
+  }, [lineTracks, arcTracks]);
+  const needUpdate = useRef(true);
+  useEffect(() => { needUpdate.current = true; }, [sceneState]);
+
+  const updateFrame = (scene: THREE.Scene, dt: number) => {
+    if (!needUpdate.current || !scene || !sceneState) return;
+    needUpdate.current = false;
+    if (lineMesh.current) scene.remove(lineMesh.current);
+    if (arcMesh.current) scene.remove(arcMesh.current);
+    lineMesh.current = geometries[0] ? new THREE.Mesh(geometries[0], defaultTrackMaterial) : null;
+    arcMesh.current = geometries[1] ? new THREE.Mesh(geometries[1], defaultTrackMaterial) : null;
+    lineMesh.current && scene.add(lineMesh.current);
+    arcMesh.current && scene.add(arcMesh.current);
+  };
+  return { updateFrame };
 }

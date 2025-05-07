@@ -37,3 +37,15 @@ a {
     color-scheme: dark;
   }
 }
+
+.header {
+  background-color: #e4e4e4;
+}
+
+.flexlayout__layout {
+  top: 32px;  /* 预留标题栏 */
+  --color-tabset-background: #f3f3f3;
+  --color-tabset-background-selected: #f3f3f3;
+  --color-tab-unselected-background: #ececec;
+  --color-tab-selected-background: #ffffff;
+}
