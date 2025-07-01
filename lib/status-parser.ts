@@ -18,6 +18,8 @@ const FactoryStatusParser = (status: FactoryStatus) => {
     if (r.hasTaskId()) res['taskId'] = r.getTaskId();
     if (r.hasLoadingRtime()) res['loadingRtime'] = r.getLoadingRtime();
     if (r.hasLoadingTtime()) res['loadingTtime'] = r.getLoadingTtime();
+    if (r.hasDistanceToEnd()) res['distanceToEnd'] = r.getDistanceToEnd();
+    if (r.hasTimeToEnd()) res['timeToEnd'] = r.getTimeToEnd();
     return res;
   });
   const devicesList: Partial<DeviceStatus.AsObject>[] = status.getDevicesList().map(d => {

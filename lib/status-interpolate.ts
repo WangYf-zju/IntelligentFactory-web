@@ -31,6 +31,8 @@ function RobotStatusInterpolate(scene: FactoryScene.AsObject,
     pos: GraphPosInterpolate(scene, robot1.pos!, robot2.pos!, percent),
     speed: LinearInterpolate(robot1.speed, robot2.speed, percent),
     loadingRtime: LinearInterpolate(robot1.loadingRtime, robot2.loadingRtime, percent),
+    distanceToEnd: LinearInterpolate(robot1.distanceToEnd, robot2.distanceToEnd, percent),
+    timeToEnd: LinearInterpolate(robot1.timeToEnd, robot2.timeToEnd, percent),
   };
 }
 

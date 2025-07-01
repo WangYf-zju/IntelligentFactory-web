@@ -1,11 +1,13 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
-import { PerspectiveCamera, OrbitControls } from '@react-three/drei';
+import { PerspectiveCamera, OrbitControls, Line, Stats } from '@react-three/drei';
 import { Select } from 'antd';
 import { useGlobalState } from '@hooks/global-state';
-import { useSharedScene } from '@/lib/hooks/shared-scene';
+import { useSharedScene } from '@hooks/shared-scene';
+import { useSharedState } from '@hooks/shared-state';
+import { ArcTrack, LineTrack } from './scene3d/track';
 
 interface Canvas3dProps {
   nodeId: string;
@@ -17,7 +19,8 @@ const CameraControls = ({ nodeId, enableControl, target }:
   { nodeId: string, enableControl: boolean, target?: [number, number, number] }) => {
   const { get } = useThree();
   const { dispatch, state: { scene, nodes, mouseButtonFunction: func, } } = useGlobalState();
-  const view_type = nodes[nodeId] ? nodes[nodeId].view.type : 'free';
+  const [getSharedState, _] = useSharedState();
+  const viewType = nodes[nodeId] ? nodes[nodeId].view.type : 'free';
   const controlsRef = useRef<OrbitControlsImpl>(null);
   const mouseButtons = func === 'move' ? {
     LEFT: THREE.MOUSE.PAN,
@@ -35,8 +38,24 @@ const CameraControls = ({ nodeId, enableControl, target }:
   };
   // 设置相机信息
   useFrame((state, delta) => {
-    if (view_type === 'follow') {
-      
+    const view = nodes[nodeId].view;
+    const s = getSharedState();
+    if (view && s.robots && view.type === 'follow' && view.targetId !== undefined) {
+      // 跟随机器人相机偏移设置
+      if (view.targetType === 'robot' && view.targetId in s.robots) {
+        const camera = get().camera as THREE.PerspectiveCamera;
+        const [x, y, z, r] = s.robots[view.targetId];
+        const targetPos = new THREE.Vector3(x, y + 3, z - 0.5);
+        // const cameraPos = targetPos.clone().add(new THREE.Vector3(-5, -5, 5));
+        // camera.position.lerp(cameraPos, 0.5);
+        camera.fov = 60;
+        camera.position.set(x + 4, y - 3, z + 1.5);
+        camera.lookAt(targetPos);
+        controlsRef.current?.target.set(x, y, z);
+        camera.updateProjectionMatrix();
+        controlsRef.current?.update();
+      }
+      // TODO: 跟随设备
     }
   });
   useEffect(() => {
@@ -44,7 +63,7 @@ const CameraControls = ({ nodeId, enableControl, target }:
       const camera = get().camera as THREE.PerspectiveCamera;
       const controls = controlsRef.current;
       const info = nodes[nodeId].cameraInfo;
-      if (view_type === 'top') {
+      if (viewType === 'top') {
         const { width: cw, height: ch } = get().size;
         const x1 = scene?.range?.x1 || 0;
         const x2 = scene?.range?.x2 || 0;
@@ -62,9 +81,9 @@ const CameraControls = ({ nodeId, enableControl, target }:
         camera.rotation.x = Math.PI / 2;
         camera.lookAt(x, y, 0);
         controls?.target.set(x, y, 0);
-      } else if (view_type === 'follow') {
+      } else if (viewType === 'follow') {
         // 每帧都要更新，直接在 useFrame 中更新
-      } else if (view_type === 'free') {
+      } else if (viewType === 'free') {
         camera.near = info?.near || camera.near;
         camera.far = info?.far || camera.far;
         camera.fov = info?.fov || camera.fov;
@@ -118,27 +137,48 @@ const CameraControls = ({ nodeId, enableControl, target }:
         enableControl &&
         <OrbitControls ref={controlsRef} target={target}
           mouseButtons={mouseButtons} touches={touches}
-          enableRotate={view_type === 'free'} enableDamping={false} />
+          enableRotate={viewType === 'free'} enableDamping={false} />
       }
     </>
   );
 };
 
+const FPS = () => {
+  const [fps, setFps] = useState(0);
+  const lastTime = useRef(performance.now());
+  const frames = useRef(0);
+
+  useFrame(() => {
+    frames.current++;
+    const now = performance.now();
+    if (now >= lastTime.current + 1000) { // 每秒更新一次
+      setFps(frames.current);
+      frames.current = 0;
+      lastTime.current = now;
+    }
+  });
+
+  return <></>;
+};
+
 const Canvas3d = (props: Canvas3dProps) => {
-  const { state: { nodes, status }, dispatch } = useGlobalState();
+  const { state: { nodes }, dispatch } = useGlobalState();
   const { nodeId, enableControl = true, debug = false } = props;
   const { target, ...camereProps } = nodes[nodeId] ? nodes[nodeId].cameraInfo : {};
   const scene = useSharedScene();
+  const [getState, _] = useSharedState();
   const [view, setView] = useState<'free' | 'top' | 'follow'>('free');
   const [follow, setFollow] = useState<string>();
+
   const followOptions = useMemo(() => {
-    const robots = status?.robotsList.map(r => ({ value: `robot_${r.id}`, label: `天车 ${r.id}` })) || [];
-    console.log(robots, status)
+    if (view !== 'follow') return;
+    const state = getState();
+    const robots = Object.keys(state.robots).map(id => ({ value: `robot_${id}`, label: `天车 ${id}` }));
     return [
       { value: undefined, label: '无' },
       ...robots
     ];
-  }, [status]);
+  }, [view]);
   useEffect(() => {
     if (view === 'follow' && !follow)
       return;
@@ -148,15 +188,16 @@ const Canvas3d = (props: Canvas3dProps) => {
       type: 'setNodeInfo', payload: {
         id: nodeId, info: {
           needUpdateCamera: true,
-          view: { type: view, target_type, target_id: Number(target_id) },
+          view: { type: view, targetType: target_type, targetId: Number(target_id) },
         }
       }
     })
   }, [view, follow]);
+
   return (
     <>
       <div className="absolute left-1 top-1 z-1 space-x-2">
-        <span>视角</span>
+        {/* <span>视角</span> */}
         <span>
           <Select className="w-20" value={view} onChange={v => setView(v)}
             options={[
@@ -179,9 +220,27 @@ const Canvas3d = (props: Canvas3dProps) => {
           {...camereProps} />
 
         <CameraControls {...{ nodeId, enableControl, target }} />
+        {/* <LineTrack start={[0, 6, 0]} end={[3, 6, 0]} />
+        <ArcTrack center={[0, 0, 0]} radius={3} angle0={0} angle1={90} dire={false} />
+        <Line points={[[0, 6, 0], [3, 6, 0]]} color={0x000000}
+          dashed dashSize={0.05} gapSize={0.05} lineWidth={1} />
+        <Line points={points} color={0x000000}
+          dashed dashSize={0.05} gapSize={0.05} lineWidth={1}/> */}
+        {/* <Stats /> */}
       </Canvas>
     </>
   );
 };
+
+const points: any[] = []
+const radius = 3
+const segments = 32
+const startAngle = 0
+const endAngle = Math.PI / 2 // 270度
+
+for (let i = 0; i <= segments; i++) {
+  const angle = startAngle + (endAngle - startAngle) * (i / segments)
+  points.push([Math.cos(angle) * radius, Math.sin(angle) * radius, 0])
+}
 
 export default Canvas3d;

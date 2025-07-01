@@ -63,10 +63,10 @@ const LayoutTabContent = ({ node, menuItems, onClickMenu }: LayoutTabContentProp
   return (
     <div className='-my-1 -ml-2 -mr-7 cursor-default'>
       <div ref={triggerRef} className='py-1 pl-2 pr-7 flex items-center'
+        onDoubleClick={(e) => e.stopPropagation()} // 禁用默认的双击重命名
         title={node.getId()}>
         <div
           onClick={toggleMenu}
-          onDoubleClick={(e) => e.stopPropagation()} // 禁用默认的双击重命名
           className="inline-block pr-1"
         >
           ▼
@@ -100,7 +100,6 @@ const LayoutTabContent = ({ node, menuItems, onClickMenu }: LayoutTabContentProp
           </div>
         )}
       </div>
-
     </div>
   );
 }

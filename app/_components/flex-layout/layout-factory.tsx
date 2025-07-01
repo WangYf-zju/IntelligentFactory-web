@@ -1,9 +1,12 @@
-import React, { lazy, Suspense, useEffect, useMemo } from 'react';
+import { lazy, memo, Suspense, useEffect, useMemo } from 'react';
 import { TabNode } from 'flexlayout-react';
 import { useGlobalState } from '@hooks/global-state';
 import CameraTable from '@comp/view/camera';
 import SceneObjectTree from '@comp/view/scene-object';
 import RobotTable from '../view/robot-table';
+import DeviceTable from '../view/device-table';
+import ProductionMonitor from '../view/production';
+import HistoryStatistic from '../view/history-statistic';
 const Canvas3d = lazy(() => import('@comp/canvas-3d'));
 
 const LoadingMask = () => {
@@ -18,8 +21,7 @@ const LoadingMask = () => {
 
 const DefaultComponent = () => <div>default</div>;
 
-const Factory = React.memo(({ nodeId, component }: { nodeId: string, component: string }) => {
-  console.log(22)
+const Factory = memo(({ nodeId, component }: { nodeId: string, component: string }) => {
   return (
     <>
       {component === 'default' && <DefaultComponent />}
@@ -31,6 +33,9 @@ const Factory = React.memo(({ nodeId, component }: { nodeId: string, component: 
       {component === 'camera' && <CameraTable />}
       {component === 'scene_object' && <SceneObjectTree />}
       {component === 'robot_table' && <RobotTable />}
+      {component === 'device_table' && <DeviceTable />}
+      {component === 'production' && <ProductionMonitor />}
+      {component === 'history' && <HistoryStatistic />}
     </>
   )
 });

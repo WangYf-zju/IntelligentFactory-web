@@ -1,6 +1,10 @@
 'use client';
 
 import { ConfigProvider, theme } from 'antd';
+import zhCN from 'antd/locale/zh_CN';
+import dayjs from 'dayjs';
+import 'dayjs/locale/zh-cn';
+
 import styles from './page.module.css';
 import { useRef } from 'react';
 import { useFactoryScene } from '@comp/scene3d/factory';
@@ -10,6 +14,9 @@ import PageFlexLayout from '@comp/flex-layout/layout';
 import { GlobalStateProvider, useGlobalState } from '@hooks/global-state';
 import { useFactory } from '@hooks/factory-core';
 import { SharedSceneProvider } from '@hooks/shared-scene';
+import { SharedStateProvider } from '@hooks/shared-state';
+
+dayjs.locale('zh-cn');
 
 function Content() {
   const { state: { paused }, dispatch } = useGlobalState();
@@ -70,12 +77,15 @@ function Content() {
 export default function Home() {
   return (
     <ConfigProvider
+      locale={zhCN}
       theme={{
         algorithm: theme.compactAlgorithm,
       }}
     >
       <GlobalStateProvider>
-        <Content />
+        <SharedStateProvider>
+          <Content />
+        </SharedStateProvider>
       </GlobalStateProvider>
     </ConfigProvider>
   );

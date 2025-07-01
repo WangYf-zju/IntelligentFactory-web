@@ -96,6 +96,16 @@ export class RobotStatus extends jspb.Message {
   getLoadingTtime(): number;
   setLoadingTtime(value: number): void;
 
+  hasDistanceToEnd(): boolean;
+  clearDistanceToEnd(): void;
+  getDistanceToEnd(): number;
+  setDistanceToEnd(value: number): void;
+
+  hasTimeToEnd(): boolean;
+  clearTimeToEnd(): void;
+  getTimeToEnd(): number;
+  setTimeToEnd(value: number): void;
+
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): RobotStatus.AsObject;
   static toObject(includeInstance: boolean, msg: RobotStatus): RobotStatus.AsObject;
@@ -118,6 +128,8 @@ export namespace RobotStatus {
     taskId: number,
     loadingRtime: number,
     loadingTtime: number,
+    distanceToEnd: number,
+    timeToEnd: number,
   }
 }
 

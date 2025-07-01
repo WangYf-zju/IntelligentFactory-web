@@ -17,7 +17,7 @@ function Factory() {
       <directionalLight color="white" position={[0.5, 0.5, 0.5]} intensity={0.5} />
       <directionalLight color="white" position={[0.5, -0.5, 0.5]} intensity={0.7} />
       <directionalLight color="white" position={[-0.5, -0.5, 0.5]} intensity={0.6} /> */}
-      <primitive object={sharedScene} name='shared' />
+      {/* <primitive object={sharedScene} name='shared' /> */}
     </>
   );
 }
@@ -32,14 +32,14 @@ export const useFactoryScene = (statusGetter: (t: number) => FactoryStatus.AsObj
 
   const init = (scene: THREE.Scene) => {
     const lights = [
-      new THREE.AmbientLight('white', 1),
-      new THREE.DirectionalLight('white', 0.1),
-      new THREE.DirectionalLight('white', 0.1),
-      new THREE.DirectionalLight('white', 0.1),
+      new THREE.AmbientLight('white', 0.5),
+      new THREE.DirectionalLight('white', 1),
+      new THREE.DirectionalLight('white', 0.5),
+      new THREE.DirectionalLight('white', 0.75),
     ];
-    lights[1].position.set(1, 1, 1);
-    lights[2].position.set(1, -1, 1);
-    lights[3].position.set(-1, -1, 1);
+    lights[1].position.set(-1, 1, 1).normalize();
+    lights[2].position.set(1, 0.5, 1).normalize();
+    lights[3].position.set(0, 0, -1).normalize();
     scene.add(...lights);
   };
 

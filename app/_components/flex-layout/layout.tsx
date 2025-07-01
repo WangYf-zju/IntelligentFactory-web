@@ -15,36 +15,15 @@ import layoutFactory from '@comp/flex-layout/layout-factory';
 import { useGlobalState } from '@hooks/global-state';
 
 const TabMenu = [
-  {
-    key: 'default',
-    component: 'default',
-    label: '默认',
-  },
-  {
-    key: 'canvas3d',
-    component: 'canvas3d',
-    label: '3D',
-  },
-  {
-    key: 'canvas3d_debug',
-    component: 'canvas3d_debug',
-    label: '3D调试',
-  },
-  {
-    key: 'camera',
-    component: 'camera',
-    label: '相机列表',
-  },
-  {
-    key: 'scene_object',
-    component: 'scene_object',
-    label: '场景',
-  },
-  {
-    key: 'robot_table',
-    component: 'robot_table',
-    label: '天车列表',
-  }
+  { key: 'default', component: 'default', label: '欢迎' },
+  { key: 'canvas3d', component: 'canvas3d', label: '3D' },
+  // { key: 'canvas3d_debug', component: 'canvas3d_debug', label: '3D调试' },
+  { key: 'camera', component: 'camera', label: '视角管理' },
+  // { key: 'scene_object', component: 'scene_object', label: '场景管理' },
+  { key: 'robot_table', component: 'robot_table', label: '天车状态' },
+  { key: 'device_table', component: 'device_table', label: '加工设备状态' },
+  // { key: 'production', component: 'production', label: '生产流水线' },
+  // { key: 'history', component: 'history', label: '历史数据统计' },
 ];
 
 const PageFlexLayout = () => {
@@ -67,31 +46,6 @@ const PageFlexLayout = () => {
               },
             ],
           },
-          {
-            type: 'column',
-            children: [
-              {
-                type: 'tabset',
-                children: [
-                  {
-                    type: 'tab',
-                    name: '3D调试',
-                    component: 'canvas3d_debug',
-                  },
-                ],
-              },
-              {
-                type: 'tabset',
-                children: [
-                  {
-                    type: 'tab',
-                    name: '相机列表',
-                    component: 'camera_list',
-                  },
-                ],
-              },
-            ],
-          }
         ],
       },
     };

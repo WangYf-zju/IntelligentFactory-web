@@ -1,14 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import * as THREE from 'three';
 import { Button, Space, Table, TableColumnsType } from 'antd';
-import { CameraInfo, useGlobalState } from '@hooks/global-state';
+import { useGlobalState } from '@hooks/global-state';
 import useResizeObserver from '@hooks/resize-observer';
 import useLocalStorage from '@hooks/local-storage';
-
-const round = (num: number | undefined, digits: number) => {
-  const c = Math.pow(10, digits);
-  return Math.round((num || 0) * c) / c;
-}
+import { round } from '@/lib/utils';
 
 interface DataType {
   key: React.Key;
@@ -142,14 +137,14 @@ const CameraTable = () => {
         pagination={false}
         columns={cameraColumns}
         dataSource={cameraDataSource}
-        scroll={{ y: (size[1] || 0) - 200 }} />
+        scroll={{ y: (size[1] || 0) - 160 }} />
       <Table
         locale={{ emptyText: null }}
         rowSelection={{ type: 'radio', onChange: onSelectionChange }}
         pagination={false}
         columns={memoryColumns}
         dataSource={memoryDataSource}
-        scroll={{ y: 120 }} />
+        scroll={{ y: 80 }} />
     </div>
   )
 };

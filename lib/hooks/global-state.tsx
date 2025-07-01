@@ -21,8 +21,8 @@ export interface CameraInfo {
 
 interface ViewInfo {
   type: 'free' | 'top' | 'follow';
-  target_type?: 'robot' | 'device';
-  target_id?: number;
+  targetType?: 'robot' | 'device';
+  targetId?: number;
   // offset?: [x: number, y: number, z: number];
 }
 
@@ -48,6 +48,8 @@ interface GlobalState {
   status?: FactoryStatus.AsObject;
   mouseButtonFunction: 'move' | 'rotate';
   nodes: { [key: string]: NodeInfo };
+  robotHidePulse: number[];
+  robotShowPath: number[];
   debug: DebugInfo;
 }
 
@@ -64,6 +66,8 @@ type Action =
   | { type: 'setNodeInfo'; payload: { id: string; info: SetNodeInfoPayload } }
   | { type: 'setNodeCameraInfo'; payload: { id: string; info: CameraInfo } }
   | { type: 'changeNodeCameraInfo'; payload: { id: string; info: CameraInfo } }
+  | { type: 'changeRobotPluse'; payload: { id: number, show: boolean } }
+  | { type: 'changeRobotPath'; payload: { id: number, show: boolean } }
   | { type: 'setDebugInfo'; payload: DebugInfo }
 
 const initialState: GlobalState = {
@@ -72,6 +76,8 @@ const initialState: GlobalState = {
   paused: true,
   mouseButtonFunction: 'move',
   nodes: {},
+  robotHidePulse: [],
+  robotShowPath: [],
   debug: {},
 };
 
@@ -88,6 +94,7 @@ const registerNode = (state: GlobalState, id: string) => {
     id: id,
     component: 'default',
     cameraInfo: {},
+    view: { type: 'free' },
     needUpdateCamera: false,
   };
   return { ...state, nodes: { ...state.nodes } };
@@ -127,7 +134,29 @@ const setNodeCameraInfo = (state: GlobalState, id: string, info: CameraInfo, nee
   };
   state.nodes[id].needUpdateCamera = needUpdate;
   return { ...state, nodes: { ...state.nodes } };
-}
+};
+
+const changeRobotPulse = (state: GlobalState, id: number, show: boolean) => {
+  const robotPluse = [...state.robotHidePulse];
+  const i = robotPluse.indexOf(id);
+  if (show) {
+    i >= 0 && robotPluse.splice(i, 1);
+  } else {
+    i < 0 && robotPluse.push(id);
+  }
+  return { ...state, robotHidePulse: robotPluse };
+};
+
+const changeRobotPath = (state: GlobalState, id: number, show: boolean) => {
+  const robotPath = [...state.robotShowPath];
+  const i = robotPath.indexOf(id);
+  if (show) {
+    i < 0 && robotPath.push(id);
+  } else {
+    i >= 0 && robotPath.splice(i, 1);
+  }
+  return { ...state, robotShowPath: robotPath };
+};
 
 function globalReducer(state: GlobalState, action: Action): GlobalState {
   switch (action.type) {
@@ -155,6 +184,10 @@ function globalReducer(state: GlobalState, action: Action): GlobalState {
       return setNodeCameraInfo(state, action.payload.id, action.payload.info);
     case 'changeNodeCameraInfo':
       return setNodeCameraInfo(state, action.payload.id, action.payload.info, true);
+    case 'changeRobotPluse':
+      return changeRobotPulse(state, action.payload.id, action.payload.show);
+    case 'changeRobotPath':
+      return changeRobotPath(state, action.payload.id, action.payload.show);
     case 'setDebugInfo':
       return { ...state, debug: { ...state.debug, ...action.payload } };
     default:

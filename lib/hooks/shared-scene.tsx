@@ -27,6 +27,7 @@ function useCustomFrame(callback: (dt: number) => void) {
 }
 
 const SharedSceneContext = createContext<THREE.Scene | null>(null);
+
 export const SharedSceneProvider = (props: SharedSceneProviderProps) => {
   const { children, init, frameUpdate: frameCallback } = props;
   const scene = useRef(new THREE.Scene());
@@ -37,7 +38,7 @@ export const SharedSceneProvider = (props: SharedSceneProviderProps) => {
     init?.(scene.current);
   }, []);
   useCustomFrame(callback);
-  
+
   return (
     <SharedSceneContext.Provider value={scene.current}>
       {children}

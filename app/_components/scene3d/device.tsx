@@ -69,8 +69,24 @@ export const useDeviceRender = () => {
     const devices = getDevicePost(sceneState)
     Object.keys(devices).forEach(type => {
       deviceInstancedMesh[type].update(scene, devices[type]);
+      // for (let obj of scene.children) {
+      //   if (obj.name === "device_model")
+      //     scene.remove(obj);
+      // }
+      renderOBJModels(scene, devices[type], deviceModel.model)
     });
   };
 
   return { frameUpdate };
+};
+
+const renderOBJModels = (scene: THREE.Scene,
+  matrix: THREE.Matrix4[], model: THREE.Group<THREE.Object3DEventMap> | null) => {
+  if (!model) return;
+  matrix.forEach(m => {
+    const modelClone = model.clone();
+    modelClone.name = "device_model";
+    modelClone.applyMatrix4(m);
+    scene.add(modelClone);
+  });
 };
